@@ -11,7 +11,6 @@ import {
   useFramesReducer,
 } from "frames.js/next/server";
 import Link from "next/link";
-import { cloneDeep } from 'lodash'
 
 const baseUrl = process.env.NEXT_PUBLIC_HOST || "http://localhost:3000";
 
@@ -31,7 +30,7 @@ const MAX_COLUMNS = 7;
 const MAX_ROWS = 6;
 const MAX_ALIGN_DISCS = 4; // 4 discs aligned = win
 
-const haveWin = (board: State, player: number, index: number): boolean => {
+const haveWin = (board: State, player: number, column: number, index: number): boolean => {
   const winString = Array.apply(null, Array(MAX_ALIGN_DISCS).fill(player)).join(',');
   const haveColumnWin = board[column].join(',').includes(winString);
   const haveRowWin = board.map(column => column[index]).join(',').includes(winString);
@@ -45,22 +44,29 @@ const noMoreEmptyCell = (board: State): boolean => !board.map(col => col.join(',
 
 const reducer: FrameReducer<State> = (state, action) => {
   const inputText = action.postBody?.untrustedData.inputText
-  if (inputText == null) {
+  if (inputText == null || inputText.length !== 1) {
     console.warn('undefined input')
     return state
   }
 
-  const column = Number.parseInt(inputText)
+  let column: number
+  try {
+    column = Number.parseInt(inputText)
+  } catch (e) {
+    return state
+  }
+
+  column -= 1
 
   if (column >= MAX_COLUMNS - 1 || column < 0) return state;
 
-  const board = cloneDeep(state);
+  const board = state;
 
   // player adds disc
   const index = board[column].findIndex((cell: number) => cell === 0);
   if (index !== -1) {
     board[column][index] = 1
-    if (haveWin(board, 1, index) || noMoreEmptyCell(board)) return board
+    if (haveWin(board, 1, column, index) || noMoreEmptyCell(board)) return board
   }
 
   // ai adds disc
@@ -68,6 +74,8 @@ const reducer: FrameReducer<State> = (state, action) => {
   if (noMoreEmptyCell(board)) {
     return board
   }
+
+  return board
 };
 
 // This is a react server component only
