@@ -5,28 +5,69 @@ import {
   FrameInput,
   FrameReducer,
   NextServerPageProps,
+  PreviousFrame,
   getFrameMessage,
   getPreviousFrame,
   useFramesReducer,
 } from "frames.js/next/server";
 import Link from "next/link";
+import { cloneDeep } from 'lodash'
 
 const baseUrl = process.env.NEXT_PUBLIC_HOST || "http://localhost:3000";
 
-type State = {
-  active: string;
-  total_button_presses: number;
-};
+type State = Array<Array<number>>
 
-const initialState = { active: "1", total_button_presses: 0 };
+// array of columns
+const initialState = [
+  [0, 0, 0, 0, 0, 0, 0], // this is a column
+  [0, 0, 0, 0, 0, 0, 0], // this is also a column
+  [0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0],
+]
+
+const MAX_COLUMNS = 7;
+const MAX_ROWS = 6;
+const MAX_ALIGN_DISCS = 4; // 4 discs aligned = win
+
+const haveWin = (board: State, player: number, index: number): boolean => {
+  const winString = Array.apply(null, Array(MAX_ALIGN_DISCS).fill(player)).join(',');
+  const haveColumnWin = board[column].join(',').includes(winString);
+  const haveRowWin = board.map(column => column[index]).join(',').includes(winString);
+  const haveDiagonalUp = board.map((column, i) => column[index + (i - column)]).join(',').includes(winString);
+  const haveDiagnalDown = board.map((column, i) => column[index - (i - column)]).join(',').includes(winString);
+
+  return haveColumnWin || haveRowWin || haveDiagonalUp || haveDiagnalDown
+}
+// check if the game is draw
+const noMoreEmptyCell = (board: State): boolean => !board.map(col => col.join(',')).join(',').includes('0');
 
 const reducer: FrameReducer<State> = (state, action) => {
-  return {
-    total_button_presses: state.total_button_presses + 1,
-    active: action.postBody?.untrustedData.buttonIndex
-      ? String(action.postBody?.untrustedData.buttonIndex)
-      : "1",
-  };
+  const inputText = action.postBody?.untrustedData.inputText
+  if (inputText == null) {
+    console.warn('undefined input')
+    return state
+  }
+
+  const column = Number.parseInt(inputText)
+
+  if (column >= MAX_COLUMNS - 1 || column < 0) return state;
+
+  const board = cloneDeep(state);
+
+  // player adds disc
+  const index = board[column].findIndex((cell: number) => cell === 0);
+  if (index !== -1) {
+    board[column][index] = 1
+    if (haveWin(board, 1, index) || noMoreEmptyCell(board)) return board
+  }
+
+  // ai adds disc
+  // Find draw case
+  if (noMoreEmptyCell(board)) {
+    return board
+  }
 };
 
 // This is a react server component only
@@ -55,14 +96,14 @@ export default async function Home({
 
   console.log("info: state is:", state);
 
-  const gamestate = [
-    [0, 1, 2, 0, 0, 0, 0],
-    [0, 1, 2, 0, 0, 0, 0],
-    [0, 2, 1, 0, 0, 0, 0],
-    [0, 1, 2, 0, 0, 0, 0],
-    [0, 1, 2, 0, 0, 0, 0],
-    [0, 1, 2, 0, 0, 0, 0],
-  ]
+  // const gamestate = [
+  //   [0, 1, 2, 0, 0, 0, 0],
+  //   [0, 1, 2, 0, 0, 0, 0],
+  //   [0, 2, 1, 0, 0, 0, 0],
+  //   [0, 1, 2, 0, 0, 0, 0],
+  //   [0, 1, 2, 0, 0, 0, 0],
+  //   [0, 1, 2, 0, 0, 0, 0],
+  // ]
 
   // then, when done, return next frame
   return (
@@ -82,7 +123,7 @@ export default async function Home({
         <FrameImage aspectRatio="1.91:1">
           <div tw="w-full h-full bg-slate-700 text-white justify-center items-center flex flex-col">
             <h1 tw="font-bold text-7xl">Make a Move</h1>
-            {gamestate.map((row, idx) => <div key={`${idx}`} tw="flex">
+            {state.map((row, idx) => <div key={`${idx}`} tw="flex">
               {row.map((col, idx2) => <div key={`${idx}${idx2}`} tw="w-16 h-16 bg-white border border-black flex justify-center items-center">
                 {col !== 0 ? 
                   <div tw={`w-[75%] h-[75%] rounded-full ${col === 1 ? "bg-red-700" : "bg-black"}`}></div> :
