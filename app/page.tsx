@@ -10,7 +10,6 @@ import {
   useFramesReducer,
 } from "frames.js/next/server";
 import Link from "next/link";
-import { DEBUG_HUB_OPTIONS } from "./debug/constants";
 
 const baseUrl = process.env.NEXT_PUBLIC_HOST || "http://localhost:3000";
 
@@ -38,7 +37,6 @@ export default async function Home({
   const previousFrame = getPreviousFrame<State>(searchParams);
 
   const frameMessage = await getFrameMessage(previousFrame.postBody, {
-    ...DEBUG_HUB_OPTIONS,
     hubHttpUrl: "http://localhost:3010/hub"
   });
 
@@ -93,16 +91,11 @@ export default async function Home({
             </div>)}
           </div>
         </FrameImage>
-        <FrameInput text="put some text here" />
+        <FrameInput text="1-7 to make a move" />
         <FrameButton>
-          {state?.active === "1" ? "Active" : "Inactive"}
+          Make Move
         </FrameButton>
-        <FrameButton>
-          {state?.active === "2" ? "Active" : "Inactive"}
-        </FrameButton>
-        <FrameButton action="link" target={`https://www.google.com`}>
-          External
-        </FrameButton>
+
       </FrameContainer>
     </div>
   );
