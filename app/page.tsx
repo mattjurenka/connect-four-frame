@@ -112,6 +112,8 @@ export default async function Home({
   //   [0, 1, 2, 0, 0, 0, 0],
   //   [0, 1, 2, 0, 0, 0, 0],
   // ]
+  const rotated = Array.from({ length: 7}).map((_, i) => 
+    Array.from({length: 6}).map((_, j) => state[j]![i]))
 
   // then, when done, return next frame
   return (
@@ -131,13 +133,15 @@ export default async function Home({
         <FrameImage aspectRatio="1.91:1">
           <div tw="w-full h-full bg-slate-700 text-white justify-center items-center flex flex-col">
             <h1 tw="font-bold text-7xl">Make a Move</h1>
-            {state.map((row, idx) => <div key={`${idx}`} tw="flex">
-              {row.map((col, idx2) => <div key={`${idx}${idx2}`} tw="w-16 h-16 bg-white border border-black flex justify-center items-center">
-                {col !== 0 ? 
-                  <div tw={`w-[75%] h-[75%] rounded-full ${col === 1 ? "bg-red-700" : "bg-black"}`}></div> :
-                  <></>}
+            <div tw="flex flex-col-reverse">
+             {rotated.map((row, idx) => <div key={`${idx}`} tw="flex">
+                {row.map((col, idx2) => <div key={`${idx}${idx2}`} tw="w-16 h-16 bg-white border border-black flex justify-center items-center">
+                  {col !== 0 ? 
+                    <div tw={`w-[75%] h-[75%] rounded-full ${col === 1 ? "bg-red-700" : "bg-black"}`}></div> :
+                    <></>}
+                </div>)}
               </div>)}
-            </div>)}
+            </div>
           </div>
         </FrameImage>
         <FrameInput text="1-7 to make a move" />
