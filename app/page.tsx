@@ -39,6 +39,7 @@ export default async function Home({
 
   const frameMessage = await getFrameMessage(previousFrame.postBody, {
     ...DEBUG_HUB_OPTIONS,
+    hubHttpUrl: "http://localhost:3010/hub"
   });
 
   if (frameMessage && !frameMessage?.isValid) {
@@ -55,6 +56,15 @@ export default async function Home({
   // example: load the users credentials & check they have an NFT
 
   console.log("info: state is:", state);
+
+  const gamestate = [
+    [0, 1, 2, 0, 0, 0, 0],
+    [0, 1, 2, 0, 0, 0, 0],
+    [0, 2, 1, 0, 0, 0, 0],
+    [0, 1, 2, 0, 0, 0, 0],
+    [0, 1, 2, 0, 0, 0, 0],
+    [0, 1, 2, 0, 0, 0, 0],
+  ]
 
   // then, when done, return next frame
   return (
@@ -73,32 +83,14 @@ export default async function Home({
         {/* <FrameImage src="https://framesjs.org/og.png" /> */}
         <FrameImage aspectRatio="1.91:1">
           <div tw="w-full h-full bg-slate-700 text-white justify-center items-center flex flex-col">
-            <div tw="flex flex-row">
-              {frameMessage?.inputText ? frameMessage.inputText : "Hello world"}
-            </div>
-            {frameMessage && (
-              <div tw="flex flex-col">
-                <div tw="flex">
-                  Requester is @{frameMessage.requesterUserData?.username}{" "}
-                </div>
-                <div tw="flex">
-                  Requester follows caster:{" "}
-                  {frameMessage.requesterFollowsCaster ? "true" : "false"}
-                </div>
-                <div tw="flex">
-                  Caster follows requester:{" "}
-                  {frameMessage.casterFollowsRequester ? "true" : "false"}
-                </div>
-                <div tw="flex">
-                  Requester liked cast:{" "}
-                  {frameMessage.likedCast ? "true" : "false"}
-                </div>
-                <div tw="flex">
-                  Requester recasted cast:{" "}
-                  {frameMessage.recastedCast ? "true" : "false"}
-                </div>
-              </div>
-            )}
+            <h1 tw="font-bold text-7xl">Make a Move</h1>
+            {gamestate.map((row, idx) => <div key={`${idx}`} tw="flex">
+              {row.map((col, idx2) => <div key={`${idx}${idx2}`} tw="w-16 h-16 bg-white border border-black flex justify-center items-center">
+                {col !== 0 ? 
+                  <div tw={`w-[75%] h-[75%] rounded-full ${col === 1 ? "bg-red-700" : "bg-black"}`}></div> :
+                  <></>}
+              </div>)}
+            </div>)}
           </div>
         </FrameImage>
         <FrameInput text="put some text here" />
