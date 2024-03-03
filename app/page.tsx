@@ -11,13 +11,30 @@ import {
   useFramesReducer,
 } from "frames.js/next/server";
 import Link from "next/link";
+import { base64url } from 'multiformats/bases/base64'
 
 const baseUrl = process.env.NEXT_PUBLIC_HOST || "http://localhost:3000";
 
-type State = Array<Array<number>>
+type State = string
+// type DecodedState= Array<Array<number>>
+type DecodedState = {
+  board: DecodedBoardState
+  winner: 0 | 1 | 2 | 3
+}
+type DecodedBoardState = Array<Array<number>>
+
+
 
 // array of columns
-const initialState = [
+// const initialState = [
+//   [0, 0, 0, 0, 0, 0, 0], // this is a column
+//   [0, 0, 0, 0, 0, 0, 0], // this is also a column
+//   [0, 0, 0, 0, 0, 0, 0],
+//   [0, 0, 0, 0, 0, 0, 0],
+//   [0, 0, 0, 0, 0, 0, 0],
+//   [0, 0, 0, 0, 0, 0, 0],
+// ]
+const initialBoardState = [
   [0, 0, 0, 0, 0, 0, 0], // this is a column
   [0, 0, 0, 0, 0, 0, 0], // this is also a column
   [0, 0, 0, 0, 0, 0, 0],
@@ -26,11 +43,19 @@ const initialState = [
   [0, 0, 0, 0, 0, 0, 0],
 ]
 
+const initialState = {
+  winner: 0,
+  board: initialBoardState
+}
+
+const encodeState = (state: DecodedState) => base64url.encode(new TextEncoder().encode(JSON.stringify(state)))
+const decodeState = (string: string) => JSON.parse(new TextDecoder().decode(base64url.decode(string)))
+
 const MAX_COLUMNS = 7;
 const MAX_ROWS = 6;
 const MAX_ALIGN_DISCS = 4; // 4 discs aligned = win
 
-const haveWin = (board: State, player: number, column: number, index: number): boolean => {
+const haveWin = (board: DecodedBoardState, player: number, column: number, index: number): boolean => {
   const winString = Array.apply(null, Array(MAX_ALIGN_DISCS).fill(player)).join(',');
   const haveColumnWin = board[column].join(',').includes(winString);
   const haveRowWin = board.map(column => column[index]).join(',').includes(winString);
@@ -60,14 +85,27 @@ const reducer: FrameReducer<State> = (state, action) => {
 
   if (column >= MAX_COLUMNS - 1 || column < 0) return state;
 
-  const board = state;
+  const decodedState = decodeState(state)
+
+  if (decodedState.winner > 0) {
+    return state
+  }
+
+  const board = decodedState.board
 
   // player adds disc
   const index = board[column].findIndex((cell: number) => cell === 0);
   if (index !== -1) {
     board[column][index] = 1
-    if (haveWin(board, 1, column, index) || noMoreEmptyCell(board)) return board
+    if (haveWin(board, 1, column, index)) {
+      decodedState.winner = 1
+    }
+    if (noMoreEmptyCell(board)) {
+      decodedState.winner = 3
+    }
   }
+
+  if (decodedState.winner > 0) return encodeState(decodedState)
   
   // ai adds disc
   const valid_cols = Array.from({ length: 6 }).map((_, i) => i).filter(i => board[i]![6] === 0)
@@ -78,15 +116,17 @@ const reducer: FrameReducer<State> = (state, action) => {
   const index_ai = board[to_drop]!.findIndex((cell: number) => cell === 0);
   if (index !== -1) {
     board[to_drop]![index_ai] = 2
-    if (haveWin(board, 2, to_drop, index) || noMoreEmptyCell(board)) return board
+    if (haveWin(board, 2, column, index_ai)) {
+      decodedState.winner = 2
+    }
+    if (noMoreEmptyCell(board)) {
+      decodedState.winner = 3
+    }
   }
 
-  // Find draw case
-  if (noMoreEmptyCell(board)) {
-    return board
-  }
+  if (decodedState.winner > 0) return encodeState(decodedState)
 
-  return board
+  return encodeState(decodedState)
 };
 
 // This is a react server component only
@@ -106,7 +146,7 @@ export default async function Home({
 
   const [state, dispatch] = useFramesReducer<State>(
     reducer,
-    initialState,
+    encodeState(initialState),
     previousFrame
   );
 
@@ -123,8 +163,10 @@ export default async function Home({
   //   [0, 1, 2, 0, 0, 0, 0],
   //   [0, 1, 2, 0, 0, 0, 0],
   // ]
+
+  const decoded = decodeState(state)
   const rotated = Array.from({ length: 7}).map((_, i) => 
-    Array.from({length: 6}).map((_, j) => state[j]![i]))
+    Array.from({length: 6}).map((_, j) => decoded.board[j]![i]))
 
   // then, when done, return next frame
   return (
