@@ -68,8 +68,19 @@ const reducer: FrameReducer<State> = (state, action) => {
     board[column][index] = 1
     if (haveWin(board, 1, column, index) || noMoreEmptyCell(board)) return board
   }
-
+  
   // ai adds disc
+  const valid_cols = Array.from({ length: 6 }).map((_, i) => i).filter(i => board[i]![6] === 0)
+  console.log(valid_cols)
+  const idx = Math.floor(Math.random() * valid_cols.length)
+  const to_drop = valid_cols[idx]!
+
+  const index_ai = board[to_drop]!.findIndex((cell: number) => cell === 0);
+  if (index !== -1) {
+    board[to_drop]![index_ai] = 2
+    if (haveWin(board, 2, to_drop, index) || noMoreEmptyCell(board)) return board
+  }
+
   // Find draw case
   if (noMoreEmptyCell(board)) {
     return board
@@ -102,7 +113,7 @@ export default async function Home({
   // Here: do a server side side effect either sync or async (using await), such as minting an NFT if you want.
   // example: load the users credentials & check they have an NFT
 
-  console.log("info: state is:", state);
+  //console.log("info: state is:", state);
 
   // const gamestate = [
   //   [0, 1, 2, 0, 0, 0, 0],
